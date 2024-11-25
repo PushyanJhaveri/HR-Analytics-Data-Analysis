@@ -1,0 +1,147 @@
+#Data Retrieval
+
+# Importing required libraries 
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Loading the dataset
+try:
+    data = pd.read_csv("HR-Analytics.csv")
+except FileNotFoundError:
+    print("Error: File not found. Please ensure 'HR-Analytics.csv' is in the directory.")
+    exit()
+
+# Visualizing the dataset
+print(data.head())
+print(data.info())
+print(data.describe())
+
+# Checking for missing values
+print("\nMissing Values:")
+print(data.isnull().sum())
+
+# Initializing target and features in the dataset
+target_col = "Attrition"
+feature_cols = [col for col in data.columns if col != target_col]
+print("\nTarget Column:", target_col)
+print("Feature Columns:", feature_cols)
+
+# Visualizing the target variable
+print("\nVisualizing target column distribution")
+sns.countplot(data=data, x=target_col)
+plt.title("Attrition Distribution")
+plt.xlabel("Attrition (Yes/No)")
+plt.ylabel("Count")
+plt.show()
+
+# Exploring some categorical features related to attrition
+selected_features = ["Gender", "MaritalStatus", "JobRole", "BusinessTravel"]
+print("\nVisualizing selected features vs. Attrition")
+
+for feature in selected_features:
+    plt.figure(figsize=(9, 5))
+    sns.countplot(data=data, x=feature, hue=target_col, palette="viridis")
+    plt.title(f"{feature} vs {target_col}", fontsize=14)
+    plt.xlabel(feature)
+    plt.ylabel("Count")
+    plt.xticks(rotation=30)
+    plt.tight_layout()  # Adjust layout
+    plt.show()
+
+    
+#Understanding of the data and code
+
+#In order to work with data, we need libraries for data manipulation (Pandas), numerical operations (NumPy), and visualizations (Matplotlib and Seaborn). These are the basics for any exploratory data analysis workflow.
+
+#Loaded the dataset "HR-Analytics.csv". This file should possess employee-related data,Both the target variable "Attrition" and others. Confirm that the file is in the directory you're working with.
+
+#reviewing the dataset to figure out its structure.
+
+#Investigating the first couple of rows, the dataset info, and the summary statistics to see if any problems exist.
+
+# Additionally, missing values and duplicate rows are observed at this point.
+
+#Visualizing the datasets such feautures vs target
+
+# Data Preprocessing
+
+print("\nPreprocessing data")
+
+# Removing missing values
+data = data.dropna()
+# Dropping duplicate rows if any exist
+data = data.drop_duplicates()
+
+# Function to remove outliers from numerical columns
+def remove_outliers(df, col):
+    if pd.api.types.is_numeric_dtype(df[col]):
+        Q1 = df[col].quantile(0.25)
+        Q3 = df[col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_limit = Q1 - 1.5 * IQR
+        upper_limit = Q3 + 1.5 * IQR
+        df = df[(df[col] >= lower_limit) & (df[col] <= upper_limit)]
+    return df
+
+# Apply outlier removal to all numeric columns
+for col in data.select_dtypes(include=[np.number]).columns:
+    data = remove_outliers(data, col)
+
+# Encoding categorical variables using one-hot encoding
+categorical_cols = data.select_dtypes(include=["object"]).columns
+print("\nCategorical Columns to Encode:", categorical_cols)
+data = pd.get_dummies(data, columns=categorical_cols, drop_first=True)
+
+# Adding new features based on existing ones
+data["Tenure"] = data["YearsAtCompany"] - data["YearsInCurrentRole"]
+data["SeniorityRatio"] = data["YearsInCurrentRole"] / (data["TotalWorkingYears"] + 1)
+
+#Understanding
+
+#Before getting into features, it is necessary first to get an insight into the distribution of the target variable, "Attrition".
+
+#showing a count plot which compares the balance between "Yes" and "No" via count status.
+
+#Outliers are often indispensable in data points and can cause faulty and misleading research. 
+
+#Plucking the outliers from numerical columns, and carrying out the method of the Interquartile Range.
+
+#Feature Engineering
+
+# Exploratory Data Analysis: Correlation Matrix
+print("\nGenerating correlation heatmap...")
+plt.figure(figsize=(12, 8))
+sns.heatmap(data.corr(), cmap="coolwarm", annot=False)
+plt.title("Correlation Heatmap")
+plt.show()
+
+# Plot attrition by overtime
+if "OverTime_Yes" in data.columns:
+    print("\nAnalyzing attrition based on overtime")
+    sns.countplot(data=data, x="OverTime_Yes", hue="Attrition_Yes")
+    plt.title("Attrition by Overtime")
+    plt.xlabel("Overtime")
+    plt.ylabel("Count")
+    plt.show()
+
+# Plotting job role analysis
+job_roles = [col for col in data.columns if "JobRole_" in col]
+if job_roles:
+    data["DominantJobRole"] = data[job_roles].idxmax(axis=1).str.replace("JobRole_", "")
+    plt.figure(figsize=(10, 6))
+    sns.countplot(data=data, x="DominantJobRole", hue="Attrition_Yes")
+    plt.title("Attrition by Job Role")
+    plt.xticks(rotation=30)
+    plt.tight_layout()
+    plt.show()
+    
+#Understanding
+#Generating the correlation heatmap dentify strong relationships between variables, which can guide feature selection.
+
+# Understanding & Recommendations
+print("- The high turnover is noticed in the specific job roles, as well as, the ones who work beyond the hours.")
+print("- The possible way can be incentives or more flexible hours.")
+print("- Exit interviews can be channels of the output information which is more beneficial.")
+print("- Areas that are lower in engagement can be observed and help can be given where needed.")
